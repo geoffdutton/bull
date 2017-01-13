@@ -2,7 +2,8 @@
 'use strict';
 
 var gulp = require('gulp'),
-  eslint = require('gulp-eslint');
+  eslint = require('gulp-eslint'),
+  eslintRc = require('./.eslintrc');
 
 gulp.task('lint', function () {
   // Note: To have the process exit with an error code (1) on
@@ -11,33 +12,9 @@ gulp.task('lint', function () {
     './lib/job.js',
     './lib/queue.js',
     './lib/timer-manager.js',
-    './test/**'
+    './test/**/*.js'
   ])
-    .pipe(eslint({
-      rules: {
-      //  'keyword-spacing': [2, 'never'],
-        indent: [2, 2, {"SwitchCase": 1}],
-        'valid-jsdoc': 0,
-        'func-style': 0,
-        'no-use-before-define': 0,
-        camelcase: 1,
-        'no-unused-vars': 1,
-        'no-alert': 1,
-        'no-console': 1,
-        'quotes': [2, "single"],
-        'no-underscore-dangle': 0
-      },
-      globals: {
-        'define': true,
-        'describe': true,
-        'it': true,
-        'setTimeout': true,
-        'after': true,
-        'afterEach': true,
-        'beforeEach': true,
-        'before': true
-      }
-    }))
+    .pipe(eslint(eslintRc))
     .pipe(eslint.format())
     .pipe(eslint.failAfterError());
 });

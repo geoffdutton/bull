@@ -203,6 +203,28 @@ describe('Queue', function () {
       });
     });
 
+    it('sets keyPrefix false', function (done) {
+      var queue = new Queue('custom_keyprefix', { redis: { DB: 1 } });
+
+      queue.once('ready', function () {
+        expect(queue.client.options.host).to.be('127.0.0.1');
+        expect(queue.bclient.options.host).to.be('127.0.0.1');
+
+        expect(queue.client.options.port).to.be(6379);
+        expect(queue.bclient.options.port).to.be(6379);
+
+        expect(queue.client.options.db).to.be(1);
+        expect(queue.bclient.options.db).to.be(1);
+
+        expect(queue.client.options.keyPrefix).to.be(false);
+        expect(queue.bclient.options.keyPrefix).to.be(false);
+
+        expect(queue.keyPrefix).to.be('bull');
+
+        queue.close().then(done);
+      });
+    });
+
     it('creates a queue using custom the supplied redis host', function (done) {
       var queue = new Queue('custom', { redis: { host: 'localhost' } });
 
@@ -249,12 +271,25 @@ describe('Queue', function () {
       });
     });
 
-    it('should create a queue with a prefix option', function () {
+    it('should create a queue with a keyPrefix option', function () {
       var queue = new Queue('q', 'redis://127.0.0.1', { keyPrefix: 'myQ' });
 
       return queue.add({ foo: 'bar' }).then(function (job) {
         expect(job.jobId).to.be.ok();
         expect(job.data.foo).to.be('bar');
+        expect(queue.keyPrefix).to.be('myQ');
+      }).then(function () {
+        return queue.close();
+      });
+    });
+
+    it('should create a queue with a prefix option', function () {
+      var queue = new Queue('q', 'redis://127.0.0.1', { prefix: 'myQ' });
+
+      return queue.add({ foo: 'bar' }).then(function (job) {
+        expect(job.jobId).to.be.ok();
+        expect(job.data.foo).to.be('bar');
+        expect(queue.keyPrefix).to.be('myQ');
       }).then(function () {
         return queue.close();
       });
@@ -501,7 +536,7 @@ describe('Queue', function () {
     });
 
     it('processes jobs that were added before the queue backend started', function () {
-      utils.newQueue('test queue added before').then(function (queueStalled) {
+      return utils.newQueue('test queue added before').then(function (queueStalled) {
         queueStalled.LOCK_RENEW_TIME = 10;
         var jobs = [
           queueStalled.add({ bar: 'baz' }),
@@ -513,7 +548,7 @@ describe('Queue', function () {
         return Promise.all(jobs)
           .then(queueStalled.close.bind(queueStalled))
           .then(function () {
-            utils.newQueue('test queue added before').then(function (queue2) {
+            return utils.newQueue('test queue added before').then(function (queue2) {
               queue2.process(function (job, jobDone) {
                 jobDone();
               });
@@ -844,7 +879,7 @@ describe('Queue', function () {
     it.skip('should pause a queue until resumed', function () {
       var ispaused = false, counter = 2;
 
-      utils.newQueue().then(function (queue) {
+      return utils.newQueue().then(function (queue) {
         var resultPromise = new Promise(function (resolve) {
           queue.process(function (job, jobDone) {
             expect(ispaused).to.be(false);
